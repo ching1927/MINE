@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客服話術工具</title>
+<style>
+  :root {
+    --bg: #f2f5f7;
+    --surface: #ffffff;
+    --surface2: #eef1f3;
+    --border: #c8d3da;
+    --accent: #8EA3B0;
+    --accent2: #a8bbc5;
+    --accent-dark: #6d8594;
+    --sub: #CC5F5A;
+    --sub2: #e08a86;
+    --sub-dark: #a84743;
+    --text: #2c3a42;
+    --text2: #5a7280;
+    --text3: #9ab0bc;
+    --tag-bg: #e8eef2;
+    --tag-text: #4a6878;
+    --green: #5daa80;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(142,163,176,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Titlebar ── */
+  .titlebar {
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    flex-shrink: 0;
+    cursor: move;
+  }
+  .titlebar h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+  .titlebar-btns { display: flex; gap: 6px; }
+  .titlebar-btns button {
+    width: 22px; height: 22px; border-radius: 50%; border: none;
+    cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center;
+  }
+  .btn-min { background: #ffd55e; color: #7a5e00; }
+  .btn-close { background: #ff6b6b; color: #fff; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .tabs::-webkit-scrollbar { height: 4px; }
+  .tabs::-webkit-scrollbar-track { background: var(--surface2); }
+  .tabs::-webkit-scrollbar-thumb { background: var(--sub); border-radius: 4px; }
+  .tabs { scrollbar-width: thin; scrollbar-color: var(--sub) var(--surface2); }
+  .tab {
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tab.active { color: var(--accent-dark); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab:hover { background: var(--surface2); }
+  .tab-add {
+    padding: 8px 12px;
+    font-size: 16px;
+    color: var(--text3);
+    cursor: pointer;
+    user-select: none;
+  }
+  .tab-add:hover { color: var(--accent); }
+
+  /* ── Main ── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 180px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .sidebar-scrollbar-track {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: #dce4e9;
+    border-left: 1px solid var(--border);
+    cursor: pointer;
+    z-index: 10;
+  }
+  .sidebar-scrollbar-thumb {
+    position: absolute;
+    right: 0;
+    width: 6px;
+    background: var(--sub);
+    border-radius: 3px;
+    cursor: grab;
+    transition: background 0.15s;
+    min-height: 24px;
+  }
+  .sidebar-scrollbar-thumb:hover, .sidebar-scrollbar-thumb.dragging { background: var(--sub-dark); cursor: grabbing; }
+  .sidebar-search {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sidebar-search input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+  .sidebar-search input:focus { border-color: var(--accent2); }
+  .phrase-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 14px 8px 8px;
+    scroll-behavior: smooth;
+  }
+  .phrase-list::-webkit-scrollbar { display: none; }
+  .phrase-list { scrollbar-width: none; }
+  .phrase-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    margin-bottom: 6px;
+    line-height: 1.5;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.12s, border-color 0.12s;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgba(142,163,176,0.08);
+  }
+  .phrase-item:hover {
+    background: #eef3f6;
+    color: var(--accent-dark);
+    border-color: var(--accent2);
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(142,163,176,0.18);
+  }
+  .phrase-item.selected {
+    background: #f8eded;
+    color: var(--sub-dark);
+    border-color: var(--sub);
+    border-left: 3px solid var(--sub);
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(204,95,90,0.2);
+  }
+  .phrase-item .phrase-label {
+    font-size: 10px;
+    color: var(--text3);
+    margin-bottom: 3px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .phrase-item .phrase-preview {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .no-result { text-align: center; color: var(--text3); font-size: 12px; padding: 20px 8px; }
+  .phrase-item.pinned { border-left: 3px solid var(--accent2); background: #f0f4f7; }
+  .phrase-item[draggable] { cursor: default; }
+  .phrase-item.drag-over { border-top: 2px solid var(--accent); background: #eef3f6; }
+  .phrase-item.dragging { opacity: 0.35; transform: scale(0.97); }
+  .drag-handle { font-size: 16px; color: var(--text3); cursor: grab; flex-shrink: 0; line-height: 1; padding: 0 4px; opacity: 0; transition: opacity 0.15s; pointer-events: none; user-select: none; }
+  .sort-mode .drag-handle { opacity: 1; pointer-events: auto; }
+  .sort-mode .phrase-item { cursor: default; }
+  .drag-handle:active { cursor: grabbing; }
+  .sort-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text2); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .sort-btn:hover { background: var(--surface2); border-color: var(--accent2); color: var(--accent-dark); }
+  .sort-btn.sort-active { background: var(--sub); color: #fff; border-color: var(--sub); font-size: 12px; font-weight: 600; width: auto; padding: 0 12px; border-radius: 18px; }
+  .tab[draggable] { cursor: grab; }
+  .tab[draggable]:active { cursor: grabbing; }
+  .tab.tab-dragging { opacity: 0.4; }
+  .tab.tab-drag-over { border-bottom: 2px solid var(--accent); background: var(--surface2); }
+  .tab { display: flex; align-items: center; gap: 4px; }
+  .tab-label { pointer-events: none; }
+  .tab-edit-btn { font-size: 11px; opacity: 0; transition: opacity 0.15s; cursor: pointer; flex-shrink: 0; line-height: 1; }
+  .tab:hover .tab-edit-btn, .tab.active .tab-edit-btn { opacity: 0.6; }
+  .tab-edit-btn:hover { opacity: 1 !important; }
+  .tab-pin-btn { font-size: 11px; opacity: 0; transition: opacity 0.15s; cursor: pointer; flex-shrink: 0; line-height: 1; margin-left: 1px; }
+  .tab:hover .tab-pin-btn, .tab.active .tab-pin-btn { opacity: 0.6; }
+  .tab-pin-btn:hover { opacity: 1 !important; }
+  .tab-pin-mark { font-size: 10px; flex-shrink: 0; line-height: 1; }
+  .tab.tab-pinned { border-bottom-color: var(--sub) !important; }
+  .tab.tab-pinned.active { border-bottom-color: var(--sub-dark) !important; }
+
+  /* ── Editor ── */
+  .editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .editor-title-input {
+    flex: 1;
+    min-width: 100px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+  .editor-title-input:focus { border-color: var(--accent2); }
+  .toolbar-btn {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .toolbar-btn:hover { background: var(--surface2); color: var(--accent); border-color: var(--accent2); }
+  .toolbar-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .toolbar-btn.primary:hover { background: var(--accent-dark); }
+  .toolbar-btn.danger { color: var(--sub-dark); }
+  .toolbar-btn.danger:hover { background: var(--sub2); border-color: var(--sub); }
+
+  .editor-content {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .editor-content textarea {
+    width: 100%;
+    height: 100%;
+    min-height: 80px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.8;
+    background: var(--surface);
+    color: var(--text);
+    resize: none;
+    outline: none;
+    font-family: inherit;
+  }
+  .editor-content textarea:focus { border-color: var(--accent2); }
+
+  /* ── Copy display ── */
+  .copy-bar {
+    background: #edf0f3;
+    border-top: 1px solid var(--border);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .preview-pin-btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .preview-pin-btn:hover { background: var(--surface2); border-color: var(--accent2); color: var(--accent-dark); }
+  .preview-pin-btn.pinned { background: #f0f4f7; color: var(--accent-dark); border-color: var(--accent2); }
+  .copy-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .copy-preview {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-weight: 700;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(142,163,176,0.08);
+  }
+  .copy-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--accent-dark); }
+  .copy-btn.copied { background: var(--green); }
+
+  /* ── Cancel preview btn ── */
+  .cancel-preview-btn {
+    width: 100%;
+    padding: 9px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .cancel-preview-btn:hover { background: var(--surface2); border-color: var(--sub); color: var(--sub-dark); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: #2d1520;
+    color: #fff;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    pointer-events: none;
+    transition: transform 0.25s ease;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Empty ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3);
+    font-size: 13px;
+    gap: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .empty-state .big { font-size: 36px; }
+  .sidebar-fab-wrap { padding: 8px; flex-shrink: 0; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); }
+  .fab-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: none; background: var(--sub); color: #fff;
+    font-size: 22px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(204,95,90,0.4);
+  }
+  .fab-btn:hover { background: var(--sub-dark); transform: scale(1.08); }
+  .fab-btn.fab-delete { background: #b87870; font-size: 15px; }
+  .fab-btn.fab-delete:hover { background: #9a5e58; }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <h1>📋 客服話術工具</h1>
+  <div class="titlebar-btns">
+    <button class="btn-min" onclick="window.blur()" title="最小化">─</button>
+    <button class="btn-close" onclick="if(confirm('確定要關閉？'))window.close()" title="關閉">✕</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <!-- generated -->
+  <div class="tab-add" onclick="addCategory()" title="新增類別">＋</div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-scrollbar-track" id="sb-track">
+      <div class="sidebar-scrollbar-thumb" id="sb-thumb"></div>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="search-input" placeholder="🔍 搜尋話術..." oninput="renderPhraseList()" />
+    </div>
+    <div class="phrase-list" id="phrase-list" style="padding-right:10px;"></div>
+    <div class="sidebar-fab-wrap" style="justify-content:space-between;">
+      <button class="sort-btn" id="sort-btn" onclick="toggleSortMode()" title="排序">⇅</button>
+      <button class="fab-btn" id="fab-btn" onclick="fabAction()" title="新增話術">＋</button>
+    </div>
+  </div>
+
+  <div class="editor-area">
+    <!-- Toolbar: shown in edit mode only -->
+    <div id="editor-toolbar" style="display:none;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;">
+        <input type="text" class="editor-title-input" id="phrase-title" placeholder="話術名稱..." />
+        <button class="toolbar-btn primary" onclick="savePhrase()">💾 儲存</button>
+        <button class="toolbar-btn" id="pin-btn" onclick="togglePin()" style="display:none">📌 置頂</button>
+      </div>
+    </div>
+
+    <!-- Preview panel: shown when phrase selected -->
+    <div id="preview-panel" style="display:none;flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="copy-bar-top" style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <button class="preview-pin-btn" id="preview-pin-btn" onclick="togglePin()">📌 置頂</button>
+        <button class="copy-btn" id="copy-btn" onclick="copyText()">複製</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:12px 14px;background:#F2DBD5;">
+        <div class="copy-preview" id="copy-preview"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:10px 12px;background:var(--surface);flex-shrink:0;">
+        <button class="cancel-preview-btn" onclick="cancelPreview()">取消此預覽文字框</button>
+      </div>
+    </div>
+
+    <!-- Edit panel: shown in edit mode (new/edit phrase) -->
+    <div id="edit-panel" style="display:none;flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="editor-content" style="flex:1;">
+        <textarea id="phrase-body" placeholder="在這裡輸入話術內容...&#10;&#10;可以用 {姓名}、{車型} 等方式標記變數，複製時記得替換喔！"></textarea>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-panel" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;text-align:center;padding:20px;line-height:1.8;">
+      點選左側話術預覽內容<br>點選 ＋ 新增話術
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'cs_phrases_v2';
+
+const DEFAULT_DATA = {
+  categories: [
+    { id: 'c1', name: '問候接待' },
+    { id: 'c2', name: '估價詢問' },
+    { id: 'c3', name: '看車邀約' },
+    { id: 'c4', name: '價格說明' },
+  ],
+  phrases: [
+    { id: 'p1', catId: 'c1', title: '一般問候', body: '您好，請問需要什麼服務呢😊\n左下角有鍵盤圖案可以切換打字喔～' },
+    { id: 'p2', catId: 'c1', title: '嗨您好', body: '嗨嗨您好～\n請問目前有在看到喜歡的車款嗎😊' },
+    { id: 'p3', catId: 'c2', title: '估價說明', body: '嗨嗨您好，需要機車估價可以填寫上方車況資訊及拍攝車況照片後上傳，我們盡快為您估價喔～' },
+    { id: 'p4', catId: 'c2', title: '詢問車況', body: '嗨嗨您好～\n行照&車況照片、總里程數(ODO)、車子目前所在縣市地區麻煩您喔' },
+    { id: 'p5', catId: 'c2', title: '詢問車況(含APP)', body: '嗨嗨您好～\n行照&車況照片、總里程數(ODO)、車子目前所在縣市地區、APP的IQ畫面再麻煩您喔' },
+    { id: 'p6', catId: 'c3', title: '有無喜歡車款', body: '您好，請問您在哪個縣市呢～\n目前有喜歡的車款嗎😊' },
+    { id: 'p7', catId: 'c3', title: '預約健檢', body: '嗨嗨您好，您有預計想要健檢的時間嗎😊' },
+    { id: 'p8', catId: 'c3', title: '備註通知', body: '好的，先幫您備註，有收到通知您～\n或者可以持續關注我們線上車庫❤️\nhttps://shop.2motor.tw/collections/all' },
+    { id: 'p9', catId: 'c4', title: '價格落差(小)', body: '不好意思，您期望的價格與我們預估的價格有些落差🥲您要參考看看嗎？' },
+    { id: 'p10', catId: 'c4', title: '價格落差(大)', body: '不好意思，您期望的價格與我們預估的價格有一半以上的落差🥲您要參考看看嗎？' },
+    { id: 'p11', catId: 'c2', title: '幫您評估', body: '嗨嗨您好，可以先填寫車況資訊幫您評估看看喔😊' },
+  ]
+};
+
+let data = (() => {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+})();
+
+let activeCatId = data.categories[0]?.id || null;
+let activePhraseId = null;
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function uid() { return 'id' + Date.now() + Math.random().toString(36).slice(2,6); }
+
+// ── Categories ──
+function renderTabs() {
+  const tabsEl = document.getElementById('tabs');
+  const addBtn = tabsEl.querySelector('.tab-add');
+  tabsEl.querySelectorAll('.tab').forEach(t => t.remove());
+  // pinned first, then rest (preserve manual order within each group)
+  const sorted = [
+    ...data.categories.filter(c => c.pinned),
+    ...data.categories.filter(c => !c.pinned)
+  ];
+  sorted.forEach(cat => {
+    const t = document.createElement('div');
+    t.className = 'tab' + (cat.id === activeCatId ? ' active' : '') + (cat.pinned ? ' tab-pinned' : '');
+    t.dataset.catId = cat.id;
+    t.draggable = true;
+
+    // pin indicator
+    if (cat.pinned) {
+      const pinMark = document.createElement('span');
+      pinMark.className = 'tab-pin-mark';
+      pinMark.textContent = '📌';
+      t.appendChild(pinMark);
+    }
+
+    const label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = cat.name;
+
+    const editBtn = document.createElement('span');
+    editBtn.className = 'tab-edit-btn';
+    editBtn.title = '重新命名';
+    editBtn.textContent = '✏️';
+    editBtn.onclick = e => { e.stopPropagation(); startTabRename(t, cat, label); };
+
+    const pinBtn = document.createElement('span');
+    pinBtn.className = 'tab-pin-btn';
+    pinBtn.title = cat.pinned ? '取消釘選' : '釘選';
+    pinBtn.textContent = cat.pinned ? '×' : '📍';
+    pinBtn.onclick = e => { e.stopPropagation(); toggleCatPin(cat.id); };
+
+    t.appendChild(label);
+    t.appendChild(editBtn);
+    t.appendChild(pinBtn);
+    t.onclick = () => { activeCatId = cat.id; activePhraseId = null; clearEditor(); renderAll(); };
+    t.ondragstart = e => { tabDragSrcId = cat.id; t.classList.add('tab-dragging'); e.dataTransfer.effectAllowed = 'move'; };
+    t.ondragover = e => { e.preventDefault(); if (cat.id !== tabDragSrcId) t.classList.add('tab-drag-over'); };
+    t.ondragleave = () => t.classList.remove('tab-drag-over');
+    t.ondrop = e => { e.preventDefault(); t.classList.remove('tab-drag-over'); tabDragDrop(cat.id); };
+    t.ondragend = () => { tabsEl.querySelectorAll('.tab').forEach(el => el.classList.remove('tab-dragging','tab-drag-over')); };
+    tabsEl.insertBefore(t, addBtn);
+  });
+}
+
+function toggleCatPin(catId) {
+  const cat = data.categories.find(c => c.id === catId);
+  if (!cat) return;
+  cat.pinned = !cat.pinned;
+  save(); renderTabs();
+  toast(cat.pinned ? '📌 分類已釘選' : '已取消釘選');
+}
+
+function addCategory() {
+  // show inline input in tab bar
+  const tabsEl = document.getElementById('tabs');
+  if (tabsEl.querySelector('.tab-new-input')) return; // already open
+  const wrap = document.createElement('div');
+  wrap.className = 'tab-new-input';
+  wrap.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 8px;';
+  wrap.innerHTML = '<input id="new-cat-input" type="text" placeholder="類別名稱" style="font-size:12px;width:80px;padding:3px 6px;border:1px solid var(--accent2);border-radius:6px;outline:none;background:var(--bg);color:var(--text);" />'
+    + '<button onclick="confirmAddCategory()" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">確定</button>'
+    + '<button onclick="cancelAddCategory()" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;">取消</button>';
+  const addBtn = tabsEl.querySelector('.tab-add');
+  tabsEl.insertBefore(wrap, addBtn);
+  const inp = document.getElementById('new-cat-input');
+  inp.focus();
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmAddCategory();
+    if (e.key === 'Escape') cancelAddCategory();
+  });
+}
+
+function confirmAddCategory() {
+  const inp = document.getElementById('new-cat-input');
+  const name = inp ? inp.value.trim() : '';
+  cancelAddCategory();
+  if (!name) return;
+  const cat = { id: uid(), name };
+  data.categories.push(cat);
+  activeCatId = cat.id;
+  save(); renderAll();
+}
+
+function cancelAddCategory() {
+  const wrap = document.querySelector('.tab-new-input');
+  if (wrap) wrap.remove();
+}
+
+// ── Phrases ──
+function getPhrases() {
+  const kw = document.getElementById('search-input').value.trim().toLowerCase();
+  let list;
+  if (kw) {
+    list = data.phrases.filter(p => p.title.toLowerCase().includes(kw) || p.body.toLowerCase().includes(kw));
+  } else {
+    list = data.phrases.filter(p => p.catId === activeCatId);
+  }
+  // pinned first, then preserve manual order within each group
+  const pinned = list.filter(p => p.pinned);
+  const rest = list.filter(p => !p.pinned);
+  return [...pinned, ...rest];
+}
+
+function renderPhraseList() {
+  const list = document.getElementById('phrase-list');
+  const phrases = getPhrases();
+  if (!phrases.length) {
+    list.innerHTML = '<div class="no-result">沒有話術<br><small>點上方＋新增</small></div>';
+    return;
+  }
+  list.innerHTML = phrases.map(p => `
+    <div class="phrase-item${p.id === activePhraseId ? ' selected' : ''}${p.pinned ? ' pinned' : ''}"
+      draggable="true"
+      data-id="${p.id}"
+      onclick="sortMode ? null : selectPhrase('${p.id}')"
+      ondragstart="dragStart(event)"
+      ondragover="dragOver(event)"
+      ondrop="dragDrop(event)"
+      ondragend="dragEnd(event)"
+      ondragleave="dragLeave(event)">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span class="drag-handle" title="拖曳排序">⠿</span>
+        <div>
+          <div class="phrase-label">${p.pinned ? '📌 ' : ''}${data.categories.find(c=>c.id===p.catId)?.name||''}</div>
+          <div class="phrase-preview">${p.title}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  if (sortMode) list.classList.add('sort-mode');
+  else list.classList.remove('sort-mode');
+}
+
+function showPanel(name) {
+  ['preview-panel','edit-panel','empty-panel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (id === name) ? 'flex' : 'none';
+  });
+  const tb = document.getElementById('editor-toolbar');
+  if (tb) tb.style.display = (name === 'edit-panel') ? 'block' : 'none';
+}
+
+function cancelPreview() {
+  activePhraseId = null;
+  resetFab();
+  showPanel('empty-panel');
+  renderPhraseList();
+}
+
+function selectPhrase(id) {
+  // second tap on same item → deselect
+  if (activePhraseId === id) {
+    cancelPreview();
+    return;
+  }
+  activePhraseId = id;
+  const p = data.phrases.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('phrase-title').value = p.title;
+  document.getElementById('phrase-body').value = p.body;
+  document.getElementById('copy-preview').textContent = p.body;
+  updatePinBtn();
+  showDeleteFab();
+  showPanel('preview-panel');
+  renderPhraseList();
+}
+
+function newPhrase() {
+  activePhraseId = null;
+  document.getElementById('phrase-title').value = '';
+  document.getElementById('phrase-body').value = '';
+  resetFab();
+  showPanel('edit-panel');
+  renderPhraseList();
+  setTimeout(() => document.getElementById('phrase-title').focus(), 50);
+}
+
+function clearEditor() {
+  document.getElementById('phrase-title').value = '';
+  document.getElementById('phrase-body').value = '';
+  const cp = document.getElementById('copy-preview');
+  if (cp) cp.textContent = '';
+  resetFab();
+  showPanel('empty-panel');
+}
+
+function savePhrase() {
+  const title = document.getElementById('phrase-title').value.trim();
+  const body = document.getElementById('phrase-body').value;
+  if (!title) { toast('請輸入話術名稱'); return; }
+  if (activePhraseId) {
+    const p = data.phrases.find(x => x.id === activePhraseId);
+    if (p) { p.title = title; p.body = body; }
+  } else {
+    const p = { id: uid(), catId: activeCatId, title, body };
+    data.phrases.push(p);
+    activePhraseId = p.id;
+  }
+  save(); renderAll();
+  const cp = document.getElementById('copy-preview');
+  if (cp) cp.textContent = body;
+  // if editing existing phrase, go back to preview; if new, show preview
+  if (activePhraseId) {
+      updatePinBtn();
+    showDeleteFab();
+    showPanel('preview-panel');
+  }
+  toast('✅ 已儲存');
+}
+
+let deleteConfirmPending = false;
+let deleteConfirmTimer = null;
+
+function deletePhrase() {
+  if (!activePhraseId) return;
+  const btn = document.getElementById('fab-btn');
+  if (!deleteConfirmPending) {
+    deleteConfirmPending = true;
+    btn.innerHTML = '確定？';
+    btn.style.cssText = 'background:var(--sub-dark);color:#fff;font-size:11px;font-weight:700;width:48px;height:48px;';
+    deleteConfirmTimer = setTimeout(() => {
+      deleteConfirmPending = false;
+      showDeleteFab();
+      btn.style.cssText = '';
+    }, 2500);
+    return;
+  }
+  clearTimeout(deleteConfirmTimer);
+  deleteConfirmPending = false;
+  btn.style.cssText = '';
+  data.phrases = data.phrases.filter(x => x.id !== activePhraseId);
+  activePhraseId = null;
+  resetFab();
+  save(); renderAll();
+  showPanel('empty-panel');
+  toast('🗑 已刪除');
+}
+
+// ── Copy ──
+function copyText() {
+  const text = document.getElementById('copy-preview').textContent;
+  if (!text || !text.trim()) { toast('請先選擇話術'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '已複製 ✓';
+    btn.classList.add('copied');
+    toast('✅ 已複製到剪貼簿');
+    setTimeout(() => { btn.textContent = '複製'; btn.classList.remove('copied'); }, 1500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✅ 已複製');
+  });
+}
+
+document.getElementById('phrase-body').addEventListener('input', function() {
+  const cp = document.getElementById('copy-preview');
+  if (cp) cp.textContent = this.value;
+});
+
+// ── Toast ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ── Pin ──
+function updatePinBtn() {
+  const p = data.phrases.find(x => x.id === activePhraseId);
+  if (!p) return;
+  // toolbar pin btn (edit mode)
+  const btn = document.getElementById('pin-btn');
+  if (btn) {
+    btn.textContent = p.pinned ? '📌 取消置頂' : '📌 置頂';
+    btn.style.color = p.pinned ? 'var(--sub-dark)' : '';
+    btn.style.borderColor = p.pinned ? 'var(--sub)' : '';
+  }
+  // preview panel pin btn
+  const ppBtn = document.getElementById('preview-pin-btn');
+  if (ppBtn) {
+    ppBtn.textContent = p.pinned ? '📌 取消置頂' : '📌 置頂';
+    ppBtn.classList.toggle('pinned', !!p.pinned);
+  }
+}
+
+function togglePin() {
+  if (!activePhraseId) return;
+  const p = data.phrases.find(x => x.id === activePhraseId);
+  if (!p) return;
+  p.pinned = !p.pinned;
+  save(); updatePinBtn(); renderPhraseList();
+  toast(p.pinned ? '📌 已置頂' : '已取消置頂');
+}
+
+// ── Drag & Drop ──
+let dragSrcId = null;
+
+function dragStart(e) {
+  dragSrcId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const el = e.currentTarget;
+  if (el.dataset.id !== dragSrcId) el.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dragEnd(e) {
+  document.querySelectorAll('.phrase-item').forEach(el => {
+    el.classList.remove('dragging', 'drag-over');
+  });
+}
+
+function dragDrop(e) {
+  e.preventDefault();
+  const targetId = e.currentTarget.dataset.id;
+  if (!targetId || targetId === dragSrcId) return;
+
+  const kw = document.getElementById('search-input').value.trim().toLowerCase();
+  // Get the ordered list as currently shown
+  const shown = getPhrases();
+  const srcIdx = data.phrases.findIndex(p => p.id === dragSrcId);
+  const tgtIdx = data.phrases.findIndex(p => p.id === targetId);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+
+  // Reorder in main array: remove src and insert before target
+  const [moved] = data.phrases.splice(srcIdx, 1);
+  const newTgtIdx = data.phrases.findIndex(p => p.id === targetId);
+  data.phrases.splice(newTgtIdx, 0, moved);
+
+  save();
+  renderPhraseList();
+  toast('✅ 順序已更新');
+}
+
+// ── Tab Rename ──
+function startTabRename(tabEl, cat, labelEl) {
+  if (tabEl.querySelector('.tab-rename-input')) return;
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = cat.name;
+  inp.className = 'tab-rename-input';
+  inp.style.cssText = 'font-size:12px;width:72px;padding:1px 4px;border:1px solid var(--accent2);border-radius:4px;outline:none;background:var(--bg);color:var(--text);font-family:inherit;';
+  inp.onclick = e => e.stopPropagation();
+  const finish = (save_) => {
+    const val = inp.value.trim();
+    tabEl.replaceChild(labelEl, inp);
+    if (save_ && val) { cat.name = val; labelEl.textContent = val; save(); renderTabs(); }
+  };
+  inp.onblur = () => finish(true);
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    if (e.key === 'Escape') { inp.value = cat.name; finish(false); }
+    e.stopPropagation();
+  };
+  tabEl.replaceChild(inp, labelEl);
+  inp.focus();
+  inp.select();
+}
+
+// ── Tab Drag & Drop ──
+let tabDragSrcId = null;
+
+function tabDragDrop(targetCatId) {
+  if (!tabDragSrcId || tabDragSrcId === targetCatId) return;
+  const srcIdx = data.categories.findIndex(c => c.id === tabDragSrcId);
+  const tgtIdx = data.categories.findIndex(c => c.id === targetCatId);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+  const [moved] = data.categories.splice(srcIdx, 1);
+  const newTgt = data.categories.findIndex(c => c.id === targetCatId);
+  data.categories.splice(newTgt, 0, moved);
+  tabDragSrcId = null;
+  save(); renderTabs();
+  toast('✅ 分類順序已更新');
+}
+
+// ── FAB ──
+let fabMode = 'add'; // 'add' | 'delete'
+
+function fabAction() {
+  if (fabMode === 'add') {
+    newPhrase();
+  } else {
+    deletePhrase();
+  }
+}
+
+function resetFab() {
+  fabMode = 'add';
+  const btn = document.getElementById('fab-btn');
+  btn.innerHTML = '＋';
+  btn.title = '新增話術';
+  btn.classList.remove('fab-delete');
+}
+
+function showDeleteFab() {
+  if (sortMode) return; // don't switch during sort mode
+  fabMode = 'delete';
+  const btn = document.getElementById('fab-btn');
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>';
+  btn.title = '刪除此話術';
+  btn.classList.add('fab-delete');
+}
+
+// ── Sort Mode ──
+let sortMode = false;
+
+function toggleSortMode() {
+  sortMode = !sortMode;
+  const btn = document.getElementById('sort-btn');
+  const fab = document.getElementById('fab-btn');
+  if (sortMode) {
+    btn.textContent = '完成';
+    btn.title = '完成排序';
+    btn.classList.add('sort-active');
+    fab.style.visibility = 'hidden';
+  } else {
+    btn.textContent = '⇅';
+    btn.title = '排序';
+    btn.classList.remove('sort-active');
+    fab.style.visibility = 'visible';
+    toast('✅ 排序已儲存');
+  }
+  renderPhraseList();
+}
+
+// ── Custom Scrollbar ──
+function initCustomScrollbar() {
+  const list = document.getElementById('phrase-list');
+  const track = document.getElementById('sb-track');
+  const thumb = document.getElementById('sb-thumb');
+  if (!list || !track || !thumb) return;
+
+  function updateThumb() {
+    const { scrollTop, scrollHeight, clientHeight } = list;
+    if (scrollHeight <= clientHeight) {
+      thumb.style.display = 'none';
+      return;
+    }
+    thumb.style.display = 'block';
+    const trackH = track.clientHeight;
+    const thumbH = Math.max(24, (clientHeight / scrollHeight) * trackH);
+    const thumbTop = (scrollTop / (scrollHeight - clientHeight)) * (trackH - thumbH);
+    thumb.style.height = thumbH + 'px';
+    thumb.style.top = thumbTop + 'px';
+  }
+
+  list.addEventListener('scroll', updateThumb);
+  new ResizeObserver(updateThumb).observe(list);
+
+  // drag thumb
+  let startY = 0, startTop = 0, isDragging = false;
+  thumb.addEventListener('pointerdown', e => {
+    isDragging = true;
+    startY = e.clientY;
+    startTop = list.scrollTop;
+    thumb.classList.add('dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', e => {
+    if (!isDragging) return;
+    const { scrollHeight, clientHeight } = list;
+    const trackH = track.clientHeight;
+    const thumbH = thumb.offsetHeight;
+    const ratio = (scrollHeight - clientHeight) / (trackH - thumbH);
+    list.scrollTop = startTop + (e.clientY - startY) * ratio;
+  });
+  document.addEventListener('pointerup', () => {
+    isDragging = false;
+    thumb.classList.remove('dragging');
+  });
+
+  // click track to jump
+  track.addEventListener('click', e => {
+    if (e.target === thumb) return;
+    const rect = track.getBoundingClientRect();
+    const ratio = (e.clientY - rect.top) / rect.height;
+    list.scrollTop = ratio * (list.scrollHeight - list.clientHeight);
+  });
+
+  updateThumb();
+}
+
+// ── Render all ──
+function renderAll() { renderTabs(); renderPhraseList(); }
+renderAll();
+showPanel('empty-panel');
+initCustomScrollbar();
+</script>
+</body>
+</html>
